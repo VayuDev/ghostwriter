@@ -171,6 +171,11 @@ public:
     bool atCodeBlockEnd(const QTextBlock &block) const;
     bool isBlockquote(const QTextBlock &block) const;
     bool isCodeBlock(const QTextBlock &block) const;
+    MarkdownNode* lineToBlock(int line) const;
+    MarkdownNode* nextHeadingFromHeading(const MarkdownNode* heading);
+    MarkdownNode* prevHeadingFromHeading(const MarkdownNode* heading);
+    int lineToIndex(int line) const;
+    std::pair<int, int> nodeSectionToIndexRange(MarkdownNode* node);
 };
 
 MarkdownEditor::MarkdownEditor
@@ -734,6 +739,70 @@ void MarkdownEditor::keyPressEvent(QKeyEvent *e)
             } else {
                 d->handleCarriageReturn();
             }
+        } else {
+            QPlainTextEdit::keyPressEvent(e);
+        }
+        break;
+    case Qt::Key_Down:
+    case Qt::Key_Up:
+        if(e->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier)) {
+            // Swap previous/next secution with the current one
+            auto line = textCursor().blockNumber() + 1;
+
+            auto currentHeading = d->lineToBlock(line);
+            MarkdownNode* toSwapWithHeading;
+            bool up = key == Qt::Key_Up;
+            if(up) {
+                toSwapWithHeading = d->prevHeadingFromHeading(currentHeading);
+            } else {
+                toSwapWithHeading = d->nextHeadingFromHeading(currentHeading);
+            }
+            // no previous/next section to swap with
+            if(!toSwapWithHeading) {
+                break;
+            }
+            auto text = d->textDocument->toPlainText();
+            auto blockRange = d->nodeSectionToIndexRange(currentHeading);
+            int blockStart = blockRange.first;
+            int blockEnd = blockRange.second;
+            auto swapRange = d->nodeSectionToIndexRange(toSwapWithHeading);
+            int swapStart = swapRange.first;
+            int swapEnd = swapRange.second;
+
+            auto prevPos = cursor.position();
+            auto prevColumn = cursor.positionInBlock();
+            cursor.beginEditBlock();
+
+            cursor.clearSelection();
+
+            cursor.setPosition(swapStart, QTextCursor::MoveAnchor);
+            cursor.setPosition(swapEnd, QTextCursor::KeepAnchor);
+            cursor.deleteChar();
+            cursor.insertText(text.mid(blockStart, blockEnd - blockStart));
+            int diff = 0;
+            if(up) {
+                diff = (blockEnd - blockStart) - (swapEnd - swapStart);
+            }
+            cursor.setPosition(blockStart + diff, QTextCursor::MoveAnchor);
+            cursor.setPosition(blockEnd + diff, QTextCursor::KeepAnchor);
+            cursor.deleteChar();
+            cursor.insertText(text.mid(swapStart, swapEnd - swapStart));
+
+            if(up) {
+                int target = prevPos - (swapEnd - swapStart);
+                if(target < 0)
+                    target = 0;
+                cursor.setPosition(target);
+            } else {
+                int target = prevPos + (swapEnd - swapStart);
+                if(target > text.length())
+                    target = text.length() - 1;
+                cursor.setPosition(target);
+
+            }
+            cursor.endEditBlock();
+            setTextCursor(cursor);
+
         } else {
             QPlainTextEdit::keyPressEvent(e);
         }
@@ -2278,4 +2347,69 @@ bool MarkdownEditorPrivate::isCodeBlock(const QTextBlock &block) const
 {
     return (MarkdownStateCodeBlock == (MarkdownStateCodeBlock & block.userState()));
 }
+
+MarkdownNode *MarkdownEditorPrivate::lineToBlock(int line) const {
+    auto block = textDocument->markdownAST()->findBlockAtLine(line);
+    while(block && block->type() != MarkdownNode::NodeType::Heading) {
+        block = block->parent();
+    }
+    if(!block) {
+        // find currentHeading using current line, basically looking for the previous heading
+        const auto& headings = textDocument->markdownAST()->headings();
+        int headingIndex = -1;
+        for(int i = 0; i < headings.size() - 1; ++i) {
+            if(headings.at(i)->startLine() <= line && headings.at(i + 1)->startLine() >= line) {
+                headingIndex = i;
+                break;
+            }
+        }
+        if(headingIndex == -1) {
+            headingIndex = headings.size() - 1;
+        }
+        block = headings.at(headingIndex);
+    }
+    return block;
+}
+
+MarkdownNode *MarkdownEditorPrivate::nextHeadingFromHeading(const MarkdownNode *heading) {
+    const auto& headings = textDocument->markdownAST()->headings();
+    for(int i = 0; i < headings.size() - 1; ++i) {
+        if(headings.at(i) == heading) {
+            return headings.at(i + 1);
+        }
+    }
+    return nullptr;
+}
+MarkdownNode *MarkdownEditorPrivate::prevHeadingFromHeading(const MarkdownNode *heading) {
+    const auto& headings = textDocument->markdownAST()->headings();
+    for(int i = 1; i < headings.size(); ++i) {
+        if(headings.at(i) == heading) {
+            return headings.at(i - 1);
+        }
+    }
+    return nullptr;
+}
+
+int MarkdownEditorPrivate::lineToIndex(int line) const {
+    int lines = 1;
+    int i = 0;
+    auto text = textDocument->toPlainText();
+    for(i = 0; i < text.length() && lines < line; ++i) {
+        if(text.at(i) == '\n') {
+            lines += 1;
+        }
+    }
+    return i;
+}
+
+std::pair<int, int> MarkdownEditorPrivate::nodeSectionToIndexRange(MarkdownNode *node) {
+    int start = lineToIndex(node->startLine());
+    auto nextHeading = nextHeadingFromHeading(node);
+    if(nextHeading) {
+        return {start, lineToIndex(nextHeading->startLine())};
+    } else {
+        return {start, textDocument->toPlainText().size()};
+    }
+}
+
 } // namespace ghostwriter

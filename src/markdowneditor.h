@@ -46,6 +46,7 @@ public:
     (
         MarkdownDocument *textDocument,
         const ColorScheme &colors,
+
         QWidget *parent = 0
     );
 
