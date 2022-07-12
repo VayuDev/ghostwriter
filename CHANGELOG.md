@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+* When renaming a file, file will now be saved even if the new file name already exists, provided the user chooses to proceed from the warning dialog.
+* Spell check dialog no longer eats HTML angle brackets when showing the context around a misspelled word.
+* Application now supports Qt 6 while maintaining backward compatibility with Qt 5.
+* Various under-the-hood refactoring/improvements have been added.
+
+## [2.1.4] - 2022-06-18
+
+### Fixed
+
+* Replaced whole word icon in find/replace due to Windows 10 not rendering Unicode characters used for old icon.
+* Changed selection color for Plainstraction Dark theme to be brighter.
+* Issues #772, 773, and 777: Added workaround for segmentation fault on GTK/Gnome 42 at startup.
+
+## [2.1.3] - 2022-05-28
+
+### Fixed
+
+* Issue #751: Fixed various sidebar and HTML preview size issues.
+* Issue #724: App waits longer for Pandoc to finish reporting version on Windows before timing out.
+* Issue #762: Fixed typo in Brazilian Portuguese translation.
+* Fixed editor margins on resize and on sidebar hide/show.
+* Updated Russian translation.
+
 ## [2.1.2] - 2022-03-12
 
 ### Fixed

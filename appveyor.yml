@@ -1,7 +1,7 @@
 
-version: 2.1.2+{build}
+version: 2.1.5-staging+{build}
 environment:
-  appver: 2.1.2
+  appver: 2.1.5-staging
   portable_dir: ghostwriter_$(appver)_win64_portable
   QTDIR: C:\Qt\5.15.2\msvc2019_64
 platform: x64
@@ -30,10 +30,13 @@ after_build:
   - cd %portable_dir%
   - mkdir dictionaries
   - mkdir data
+  - git clone https://github.com/wereturtle/hunspell-dictionaries.git
+  - cp hunspell-dictionaries/*.aff dictionaries
+  - cp hunspell-dictionaries/*.dic dictionaries
   - windeployqt ghostwriter.exe
 branches:
   only: 
-  - master
+  - release
 artifacts:
   - path: $(portable_dir)
     name: $(portable_dir)
@@ -41,10 +44,10 @@ artifacts:
 deploy:
   tag: $(appver)
   release: $(APPVEYOR_PROJECT_NAME) $(appver)
-  draft: true
+  draft: false
   provider: GitHub
   auth_token:
-    secure: BwAh7GBWfGp5VD1+HS20if8Y0QWVHM5ldypiUtDACIt3eVpEdaNvqCfao5ZIMD2C
+    secure: B+un2fzPlu2vLk0lPKh+QkcpVEU5xGc/g4sRFCXnaKp5b1CpQeYKE8xZmJRMXf6l
   artifact: $(portable_dir).zip
   force_update: true
   on:

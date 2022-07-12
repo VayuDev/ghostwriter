@@ -22,6 +22,7 @@
 
 #include <QAction>
 #include <QLabel>
+#include <QMainWindow>
 #include <QPushButton>
 #include <QSettings>
 #include <QSplitter>
@@ -42,6 +43,7 @@
 #include "theme.h"
 #include "themerepository.h"
 #include "timelabel.h"
+#include "spelling/spellcheckdecorator.h"
 
 #define MAX_RECENT_FILES 10
 
@@ -102,9 +104,10 @@ private slots:
 private:
     QtAwesome *awesome;
     MarkdownEditor *editor;
+    SpellCheckDecorator *spelling;
     FindReplace* findReplace;
     QSplitter *previewSplitter;
-    QSplitter *sidebarSplitter;
+    QSplitter *splitter;
     DocumentManager *documentManager;
     ThemeRepository *themeRepo;
     Theme theme;
@@ -134,6 +137,8 @@ private:
     QAction *recentFilesActions[MAX_RECENT_FILES];
     bool menuBarMenuActivated;
     QAction *showSidebarAction;
+    bool sidebarHiddenForResize;
+    bool focusModeEnabled;
 
     QList<QWidget *> statusBarButtons;
     QList<QWidget *> statusBarWidgets;
@@ -160,7 +165,7 @@ private:
     void buildStatusBar();
     void buildSidebar();
 
-    void adjustEditorWidth(int width, bool resizeEvent = false);
+    void adjustEditor();
 };
 } // namespace ghostwriter
 
