@@ -29,7 +29,7 @@ ColorButton::ColorButton(QWidget *parent)
     : QPushButton(parent)
 {
     setAutoDefault(false);
-    connect(this, SIGNAL(clicked()), this, SLOT(onClicked()));
+    connect(this, SIGNAL(pressed()), this, SLOT(onClicked()));
 }
 
 //-----------------------------------------------------------------------------
